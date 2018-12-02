@@ -2,6 +2,9 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.0)
+    concurrent-ruby (1.0.5)
+    immutable-ruby (0.0.3)
+      concurrent-ruby (~> 1.0.0)
     jaro_winkler (1.5.1)
     parallel (1.12.1)
     parser (2.5.3.0)
@@ -24,8 +27,9 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  immutable-ruby
   rubocop
   sysexits
 
 BUNDLED WITH
-   1.16.2
+   1.17.1
