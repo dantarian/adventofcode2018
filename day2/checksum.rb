@@ -1,30 +1,17 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'immutable'
-require 'sysexits'
+require '../argument_validator'
 
-# Provides methods for validating input.
-class ArgumentValidator
-  def self.check_usage(args)
-    return if args.length == 1
+USAGE = <<~USAGE
+  Usage: checksum.rb <filename>
 
-    puts 'Usage: checksum.rb <filename>'
-    puts
-    puts 'Given a file containing a series of strings, 1 per line, returns'
-    puts 'a checksum calculated by multiplying the number of those strings'
-    puts 'containing exactly two of any letter by the number containing'
-    puts 'exactly three of any letter.'
-    Sysexits.exit(:usage)
-  end
+  Given a file containing a series of strings, 1 per line, returns a checksum
+  calculated by multiplying the number of those strings containing exactly two
+  of any letter by the number containing exactly three of any letter.
+USAGE
 
-  def self.check_file_exists(filename)
-    return if File.exist?(filename)
-
-    puts "File not found: #{filename}"
-    Sysexits.exit(:input_missing)
-  end
-end
+argument_validator = ArgumentValidator.new(USAGE, 1)
 
 # Calculates the checksum of a file consisting of many string by multiplying
 # the number of those strings that contain exactly two of the same character
@@ -62,8 +49,8 @@ class CharacterCounter
   end
 end
 
-ArgumentValidator.check_usage(ARGV)
+argument_validator.check_number_of_arguments(ARGV)
 filename = ARGV.first
-ArgumentValidator.check_file_exists(filename)
+argument_validator.check_file_exists(filename)
 
 puts ChecksumCalculator.new(filename).call
