@@ -42,7 +42,7 @@ class CharacterCounter
       raise ArgumentError, 'Argument has no each_char method.'
     end
 
-    input.each_char.inject({}) do |hash, char|
+    input.each_char.each_with_object({}) do |char, hash|
       hash[char] = (hash.key?(char) ? hash[char] + 1 : 1)
       hash
     end
