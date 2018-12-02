@@ -44,7 +44,6 @@ class CharacterCounter
 
     input.each_char.each_with_object({}) do |char, hash|
       hash[char] = (hash.key?(char) ? hash[char] + 1 : 1)
-      hash
     end
   end
 end
