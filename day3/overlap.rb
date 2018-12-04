@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require '../argument_validator'
+require 'set'
 
 USAGE = <<~USAGE
   Usage: overlap.rb <filename>
@@ -16,25 +17,45 @@ argument_validator = ArgumentValidator.new(USAGE, 1)
 # Struct defining a pair of ranges, in the horizontal and vertical
 # directions.
 Claim = Struct.new(:id, :h_range, :v_range) do
-  def cover?(x, y)
-    h_range.cover?(x) && v_range.cover?(y)
+  def intersection(other)
+    return nil unless overlap?(self, other)
+
+    [range_intersection(h_range, other.h_range),
+     range_intersection(v_range, other.v_range)]
+  end
+
+  private
+
+  def range_intersection(range1, range2)
+    [range1.min, range2.min].max..[range1.max, range2.max].min
+  end
+
+  def overlap?(claim1, claim2)
+    range_overlap?(claim1.h_range, claim2.h_range) &&
+      range_overlap?(claim1.v_range, claim2.v_range)
+  end
+
+  def range_overlap?(range1, range2)
+    !(range1.max < range2.min || range2.max < range1.min)
   end
 end
 
 # Reads in a file and produces a list of claims.
 class ClaimsReader
+  MATCHER = /^#(?<id>\d+)\s+@\s+(?<h_start>\d+),(?<v_start>\d+):\s+(?<width>\d+)x(?<height>\d+)$/
+
   def initialize(filename)
     @strings = IO.readlines(filename).map(&:chomp)
   end
 
   def call
-    matcher = /^#(?<id>\d+)\s+@\s+(?<h_start>\d+),(?<v_start>\d+):\s+(?<width>\d+)x(?<height>\d+)$/
-
     @strings.map do |str|
-      parts = matcher.match(str)
-      Claim.new(parts['id'].to_i,
-                parts['h_start'].to_i...(parts['h_start'].to_i + parts['width'].to_i),
-		parts['v_start'].to_i...(parts['v_start'].to_i + parts['height'].to_i))
+      parts = MATCHER.match(str)
+      Claim.new(
+        parts['id'].to_i,
+        parts['h_start'].to_i...(parts['h_start'].to_i + parts['width'].to_i),
+        parts['v_start'].to_i...(parts['v_start'].to_i + parts['height'].to_i)
+      )
     end
   end
 end
@@ -43,27 +64,25 @@ end
 class DoubleClaimCounter
   def initialize(claims)
     @claims = claims
-    @r_claims = claims.reverse
-    @num_claims = claims.length
-    h_ranges = claims.map(&:h_range)
-    v_ranges = claims.map(&:v_range)
-    @h_range = h_ranges.map(&:min).min..h_ranges.map(&:max).max
-    @v_range = v_ranges.map(&:min).min..v_ranges.map(&:max).max
   end
 
   def call
-    @h_range.inject(0) do |count, x|
-      puts "Processing row #{x}..."
-      count + @v_range.inject(0) do |subcount, y|
-        first = @claims.find_index { |claim| claim.cover?(x, y) }
-        if first
-          second = @r_claims.find_index { |claim| claim.cover?(x, y) }
-          subcount + (first + second == @num_claims - 1 ? 0 : 1)
-        else
-          subcount
-        end
+    previous_claims = []
+    overlaps = Set[]
+    @claims.each do |claim1|
+      previous_claims.each do |claim2|
+	intersection = claim1.intersection(claim2)
+	if intersection
+	  intersection.first.each do |x|
+	    intersection.last.each do |y|
+              overlaps.add([x,y])
+	    end
+	  end
+	end
       end
+      previous_claims << claim1
     end
+    overlaps.length
   end
 end
 
@@ -72,5 +91,4 @@ filename = ARGV.first
 argument_validator.check_file_exists(filename)
 
 claims = ClaimsReader.new(filename).call
-puts 'Read file.'
 puts DoubleClaimCounter.new(claims).call
