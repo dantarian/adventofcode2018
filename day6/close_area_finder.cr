@@ -68,7 +68,7 @@ class AreaFinder
   @x_max : Int32
   @y_min : Int32
   @y_max : Int32
-  @checked_points = Hash(Point, Boolean).new
+  @checked_points = Hash(Point, Bool).new
 
   def initialize(@known_points : Array(Point))
     @x_min = @known_points.map { |p| p.x }.min
@@ -89,7 +89,7 @@ class AreaFinder
       new_points_to_check = Set.new([] of Point)
       points_to_check.each do |point|
 	distance = @known_points.map { |kp| kp.distance_to(point) }.sum
-	@checked_point[point] = (distance < 10000)
+	@checked_points[point] = (distance < 10000)
         if (distance < 10000)
           new_points_to_check.concat(point.neighbours.to_set.select { |p| consider?(p) })
         end
