@@ -24,16 +24,12 @@ class GridBuilder
   end
 
   def call
-    grid = []
-    (1..@size).each do |x|
+    (1..@size).inject([]) do |grid, x|
       sx = @serial_number * x
-      col = []
-      (1..@size).each do |y|
+      grid << (1..@size).inject([]) do |col, y|
         col << calc(x, y, sx, @ten_s)
       end
-      grid << col
     end
-    grid
   end
 
   def calc(x, y, sx, ten_s)
@@ -55,14 +51,11 @@ class HighPowerFinder
   private
 
   def max_of_size(size)
-    max_per_column = subgrid_sums(size).map do |col|
-      max = col.max
-      [max, col.index(max)]
-    end
+    max = subgrid_sums(size).map { |c| c.each_with_index.max_by(&:first) }
+                            .each_with_index
+                            .max_by { |max_c| max_c.first.first }
 
-    max = max_per_column.max_by(&:first)
-
-    [Address.new(max_per_column.index(max) + 1, max.last + 1, size), max.first]
+    [Address.new(max.last + 1, max.first.last + 1, size), max.first.first]
   end
 
   def subgrid_sums(size)
@@ -73,13 +66,9 @@ class HighPowerFinder
   end
 
   def window_sums(array, size)
-    output = [array.first(size).sum]
-    if array.length > size
-      (0...array.length - size).each do |offset|
-        output << output[offset] + array[offset + size] - array[offset]
-      end
+    array.each_cons(size + 1).inject([array.first(size).sum]) do |acc, subarray|
+      acc << acc.last + subarray.last - subarray.first
     end
-    output
   end
 end
 
