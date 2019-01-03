@@ -1,3 +1,5 @@
+require "progress"
+
 USAGE = <<-END_OF_USAGE
 Usage: plant_breeder <filename> <generations>
 
@@ -35,49 +37,52 @@ argument_validator.check_file_exists(ARGV.first)
 def read_file(filename : String)
   lines = File.read_lines(filename)
   state = lines.first.sub("initial state: ", "")
-  rules = lines.last(lines.length - 2)
+  rules = lines.last(lines.size - 2)
   {state, rules}
 end
 
-def read_state(state : String)
-  state.each_char
-       .each_with_index
-       .map { |c, i| i if c == "#" }
-       .reject(&:nil?))
+def read_state(state : String) : Set(Int32)
+  state.chars
+       .map_with_index { |c, i| i if c == '#' }
+       .compact
        .to_set
 end
 
 def read_rules(rules : Array(String))
   rules.select { |s| s.ends_with?("#") }
        .map { |s| s[0...5] }
-       .map { |s| s.each_char.map { |c| c == "#" } }
+       .map { |s| s.chars.map { |c| c == '#' }.to_a }
        .to_set
 end
 
-def breed(state : String, rules : Set(Array(Boolean)))
+def breed(state : Set(Int32), rules : Set(Array(Bool)))
   first, last = state.minmax
   first -= 2
   last += 2
 
   (first..last).map { |i| i if rules.includes?((i-2..i+2).map { |j| state.includes? j }) }
-               .reject(&:nil?)
+               .compact
                .to_set
 end
 
 state, rules = read_file(ARGV.first)
 state = read_state(state)
 rules = read_rules(rules)
-generations = ARGV.last.to_i
+generations : Int64 = ARGV.last.to_i64
 
-current_gen = 0
-past_results = {} of (UInt64, Tuple(Int,Int))
+current_gen : Int64 = 0
+past_results = {} of UInt64 => Tuple(Int64, Int32)
 past_results[state.hash] = {current_gen, state.sum}
+
+bar = ProgressBar.new
+bar.total = (generations / 100).to_i32
 
 while current_gen < generations
   current_gen += 1
   state = breed(state, rules)
+  bar.inc if current_gen % 100 == 0
   hash = state.hash
-  break if past_results.key?(hash)
+  break if past_results.has_key?(hash)
   past_results[hash] = {current_gen, state.sum}
 end
 
